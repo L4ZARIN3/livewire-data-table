@@ -27,6 +27,16 @@ php artisan vendor:publish --tag=livewire-data-table-config
 php artisan vendor:publish --tag=livewire-data-table-views
 ```
 
+Se o projeto destino usa Tailwind, inclua as views do pacote no `content` para garantir classes como `group-hover:rotate-90` no build final:
+
+```js
+content: [
+  "./resources/**/*.blade.php",
+  "./resources/**/*.js",
+  "./vendor/lazarini/livewire-data-table/resources/views/**/*.blade.php",
+]
+```
+
 ## Uso Rapido
 
 Crie um componente Livewire que estende `Lazarini\LivewireDataTable\DataTableComponent`:
