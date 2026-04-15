@@ -69,6 +69,8 @@ $loadingTargets = 'sortBy,clearFilters,perPage,search,filterValues,previousPage,
 
             <button type="button" wire:click="clearFilters"
                 class="group h-10 w-full inline-flex items-center justify-center gap-2 rounded-xl bg-slate-800/60 px-4 text-sm font-semibold text-slate-100 ring-1 ring-inset ring-slate-700 transition-all duration-200 hover:bg-slate-800 hover:ring-slate-600 active:scale-[.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/60 sm:w-auto">
+                <x-heroicon-o-x-mark
+                    class="h-4 w-4 text-slate-400 transition-transform duration-200 group-hover:rotate-90 group-hover:text-slate-200" />
                 Limpar filtros
             </button>
         </div>

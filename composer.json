@@ -12,6 +12,7 @@
     ],
     "require": {
         "php": "^8.2",
+        "blade-ui-kit/blade-heroicons": "^2.0",
         "illuminate/contracts": "^11.0 || ^12.0 || ^13.0",
         "illuminate/database": "^11.0 || ^12.0 || ^13.0",
         "illuminate/pagination": "^11.0 || ^12.0 || ^13.0",
