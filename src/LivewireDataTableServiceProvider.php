@@ -41,15 +41,14 @@ class LivewireDataTableServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        $this->loadViewsFrom(__DIR__ . '/../resources/views', 'livewire-data-table');
-        $this->app['view']->addLocation(__DIR__ . '/../resources/views/livewire-data-table');
+        $this->loadViewsFrom(__DIR__ . '/../resources/views/livewire-data-table', 'livewire-data-table');
 
         $this->publishes([
             __DIR__ . '/../config/livewire-data-table.php' => config_path('livewire-data-table.php'),
         ], 'livewire-data-table-config');
 
         $this->publishes([
-            __DIR__ . '/../resources/views' => resource_path('views/vendor/livewire-data-table'),
+            __DIR__ . '/../resources/views/livewire-data-table' => resource_path('views/vendor/livewire-data-table'),
         ], 'livewire-data-table-views');
     }
 }
