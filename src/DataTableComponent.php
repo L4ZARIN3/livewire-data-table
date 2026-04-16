@@ -78,6 +78,14 @@ abstract class DataTableComponent extends Component
     }
 
     /**
+     * @return array<int, array<string, mixed>>
+     */
+    protected function actions(): array
+    {
+        return [];
+    }
+
+    /**
      * @return array<int, int>
      */
     protected function perPageOptions(): array
@@ -101,7 +109,7 @@ abstract class DataTableComponent extends Component
 
         if ($this->sortField === '') {
             $sortableColumn = collect($this->normalizedColumns())
-                ->first(fn (array $column): bool => (bool) $column['sortable']);
+                ->first(fn(array $column): bool => (bool) $column['sortable']);
             $this->sortField = (string) ($sortableColumn['key'] ?? 'id');
         }
 
@@ -130,7 +138,7 @@ abstract class DataTableComponent extends Component
     public function sortBy(string $field): void
     {
         $column = collect($this->normalizedColumns())
-            ->first(fn (array $column): bool => $column['key'] === $field);
+            ->first(fn(array $column): bool => $column['key'] === $field);
 
         if (! is_array($column) || ! $column['sortable']) {
             return;
@@ -153,6 +161,24 @@ abstract class DataTableComponent extends Component
         $this->expandedRowKey = $this->expandedRowKey === $rowKey ? null : $rowKey;
     }
 
+    public function runAction(string $key): mixed
+    {
+        $action = collect($this->normalizedActions())
+            ->first(fn(array $action): bool => $action['key'] === $key);
+
+        if (! is_array($action) || ! $action['enabled']) {
+            return null;
+        }
+
+        $method = (string) $action['method'];
+
+        if ($method === '' || ! method_exists($this, $method) || ! is_callable([$this, $method])) {
+            return null;
+        }
+
+        return $this->{$method}();
+    }
+
     #[Computed]
     public function rows(): LengthAwarePaginator
     {
@@ -172,6 +198,7 @@ abstract class DataTableComponent extends Component
             'columns' => $this->normalizedColumns(),
             'filters' => $this->normalizedFilters(),
             'details' => $this->details(),
+            'actions' => $this->normalizedActions(),
             'rows' => $this->rows,
             'perPageOptions' => $this->perPageOptions(),
             'title' => $this->title(),
@@ -229,7 +256,7 @@ abstract class DataTableComponent extends Component
 
                 return $column;
             })
-            ->filter(fn (array $column): bool => $column['key'] !== '')
+            ->filter(fn(array $column): bool => $column['key'] !== '')
             ->values()
             ->all();
     }
@@ -252,7 +279,38 @@ abstract class DataTableComponent extends Component
 
                 return $filter;
             })
-            ->filter(fn (array $filter): bool => $filter['key'] !== '')
+            ->filter(fn(array $filter): bool => $filter['key'] !== '')
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    public function normalizedActions(): array
+    {
+        return collect($this->actions())
+            ->map(function (array $action): ?array {
+                $action['key'] = (string) ($action['key'] ?? '');
+                $action['label'] = (string) ($action['label'] ?? $action['key']);
+                $action['method'] = (string) ($action['method'] ?? '');
+                $action['icon'] = (string) ($action['icon'] ?? '');
+                $action['button_class'] = (string) ($action['button_class'] ?? '');
+                $action['icon_class'] = (string) ($action['icon_class'] ?? '');
+                $action['enabled'] = (bool) ($action['enabled'] ?? true);
+
+                $visible = $action['visible'] ?? true;
+                if (is_callable($visible)) {
+                    $visible = (bool) $visible($this);
+                }
+
+                if (! $visible || $action['key'] === '' || $action['method'] === '') {
+                    return null;
+                }
+
+                return $action;
+            })
+            ->filter(fn(?array $action): bool => is_array($action))
             ->values()
             ->all();
     }
@@ -281,8 +339,8 @@ abstract class DataTableComponent extends Component
         }
 
         $columns = collect($this->normalizedColumns())
-            ->filter(fn (array $column): bool => $column['searchable'])
-            ->map(fn (array $column): string => (string) $column['sort_column'])
+            ->filter(fn(array $column): bool => $column['searchable'])
+            ->map(fn(array $column): string => (string) $column['sort_column'])
             ->values();
 
         if ($columns->isEmpty()) {
@@ -322,7 +380,7 @@ abstract class DataTableComponent extends Component
     {
         $direction = $this->sortDirection === 'asc' ? 'asc' : 'desc';
         $column = collect($this->normalizedColumns())
-            ->first(fn (array $column): bool => $column['key'] === $this->sortField && $column['sortable']);
+            ->first(fn(array $column): bool => $column['key'] === $this->sortField && $column['sortable']);
 
         $sortColumn = (string) ($column['sort_column'] ?? 'id');
         $query->orderBy($sortColumn, $direction);
@@ -331,13 +389,13 @@ abstract class DataTableComponent extends Component
     protected function applySelectColumns(Builder $query): void
     {
         $columnKeys = collect($this->normalizedColumns())
-            ->map(fn (array $column): string => $column['sort_column'])
-            ->filter(fn (string $column): bool => ! str_contains($column, '.'))
+            ->map(fn(array $column): string => $column['sort_column'])
+            ->filter(fn(string $column): bool => ! str_contains($column, '.'))
             ->merge(['id']);
 
         $detailKeys = collect($this->details())
-            ->map(fn (array $field): string => (string) ($field['key'] ?? ''))
-            ->filter(fn (string $column): bool => $column !== '' && ! str_contains($column, '.'));
+            ->map(fn(array $field): string => (string) ($field['key'] ?? ''))
+            ->filter(fn(string $column): bool => $column !== '' && ! str_contains($column, '.'));
 
         $columns = $columnKeys
             ->merge($detailKeys)
@@ -353,10 +411,10 @@ abstract class DataTableComponent extends Component
     protected function applyWith(Builder $query): void
     {
         $relations = collect($this->normalizedColumns())
-            ->map(fn (array $column): string => (string) ($column['sort_column'] ?? ''))
-            ->merge(collect($this->details())->map(fn (array $field): string => (string) ($field['key'] ?? '')))
-            ->filter(fn (string $path): bool => str_contains($path, '.'))
-            ->map(fn (string $path): string => explode('.', $path)[0])
+            ->map(fn(array $column): string => (string) ($column['sort_column'] ?? ''))
+            ->merge(collect($this->details())->map(fn(array $field): string => (string) ($field['key'] ?? '')))
+            ->filter(fn(string $path): bool => str_contains($path, '.'))
+            ->map(fn(string $path): string => explode('.', $path)[0])
             ->unique()
             ->values()
             ->all();

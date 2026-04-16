@@ -115,6 +115,54 @@ Renderize normalmente:
 <livewire:tables.leads-table />
 ```
 
+## Acoes Customizadas
+
+Voce pode renderizar botoes de acao no topo da tabela sem acoplar regra de negocio no pacote. O pacote apenas desenha os botoes e chama metodos do seu componente:
+
+```php
+protected function actions(): array
+{
+    return [
+        [
+            'key' => 'csv',
+            'label' => 'Baixar CSV',
+            'method' => 'downloadCsv',
+            'icon' => 'heroicon-o-arrow-down-tray',
+            'button_class' => 'group inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-emerald-500/10 px-4 text-sm font-semibold text-emerald-300 ring-1 ring-inset ring-emerald-400/30 transition-all duration-200 hover:-translate-y-0.5 hover:bg-emerald-500/20 hover:text-emerald-200 hover:ring-emerald-300/40',
+            'icon_class' => 'h-4 w-4 text-emerald-300 transition-transform duration-200 group-hover:translate-y-0.5',
+        ],
+        [
+            'key' => 'sync',
+            'label' => 'Sincronizar',
+            'method' => 'syncNow',
+            'icon' => 'heroicon-o-arrow-path',
+            'visible' => fn () => auth()->user()?->can('sync-leads') ?? false,
+        ],
+    ];
+}
+
+public function downloadCsv()
+{
+    // Sua logica aqui (download, dispatch de job, etc)
+}
+
+public function syncNow(): void
+{
+    // Sua logica aqui
+}
+```
+
+Campos suportados em cada acao:
+
+- `key` (obrigatorio): identificador unico da acao
+- `label`: texto do botao
+- `method` (obrigatorio): metodo publico do proprio componente Livewire
+- `icon`: nome do componente Blade (ex.: `heroicon-o-arrow-down-tray`)
+- `button_class`: classes CSS do botao
+- `icon_class`: classes CSS do icone
+- `enabled`: habilita/desabilita o botao (default `true`)
+- `visible`: bool ou closure para decidir se a acao aparece
+
 ## API Declarativa
 
 ### Colunas

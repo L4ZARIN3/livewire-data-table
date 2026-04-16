@@ -19,7 +19,7 @@
 @endpushonce
 
 @php
-$loadingTargets = 'sortBy,clearFilters,perPage,search,filterValues,previousPage,nextPage,gotoPage';
+$loadingTargets = 'sortBy,clearFilters,runAction,perPage,search,filterValues,previousPage,nextPage,gotoPage';
 @endphp
 
 <div class="p-6 space-y-5">
@@ -32,6 +32,17 @@ $loadingTargets = 'sortBy,clearFilters,perPage,search,filterValues,previousPage,
         </div>
 
         <div class="flex flex-wrap items-center justify-end gap-2">
+            @foreach ($actions as $action)
+            <button type="button" wire:click="runAction('{{ $action['key'] }}')" @disabled(!$action['enabled'])
+                class="{{ $action['button_class'] !== '' ? $action['button_class'] : 'group inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-indigo-500/10 px-4 text-sm font-semibold text-indigo-300 ring-1 ring-inset ring-indigo-400/30 transition-all duration-200 hover:-translate-y-0.5 hover:bg-indigo-500/20 hover:text-indigo-200 hover:ring-indigo-300/40 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/60 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950' }}">
+                @if ($action['icon'] !== '')
+                <x-dynamic-component :component="$action['icon']"
+                    class="{{ $action['icon_class'] !== '' ? $action['icon_class'] : 'h-4 w-4 text-indigo-300 transition-transform duration-200 group-hover:scale-110' }}" />
+                @endif
+                {{ $action['label'] }}
+            </button>
+            @endforeach
+
             <span wire:loading.flex wire:target="{{ $loadingTargets }}"
                 class="hidden items-center gap-1.5 text-xs text-indigo-400">
                 <svg class="h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
