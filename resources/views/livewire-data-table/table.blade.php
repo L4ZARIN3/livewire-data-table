@@ -31,38 +31,21 @@ $loadingTargets = 'sortBy,clearFilters,runAction,perPage,search,filterValues,pre
             @endif
         </div>
 
-        <div class="flex flex-col items-end gap-2">
-            <div class="flex flex-wrap items-center justify-end gap-2">
-                <span wire:loading.flex wire:target="{{ $loadingTargets }}"
-                    class="hidden items-center gap-1.5 text-xs text-indigo-400">
-                    <svg class="h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                    </svg>
-                    Atualizando...
-                </span>
+        <div class="flex flex-wrap items-center justify-end gap-2">
+            <span wire:loading.flex wire:target="{{ $loadingTargets }}"
+                class="hidden items-center gap-1.5 text-xs text-indigo-400">
+                <svg class="h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                Atualizando...
+            </span>
 
-                <div
-                    class="inline-flex items-center gap-2 rounded-full bg-slate-800/70 px-3 py-1 text-xs font-semibold text-slate-200 ring-1 ring-inset ring-slate-700">
-                    <span class="text-slate-400">Total</span>
-                    <span class="text-slate-100">{{ $rows->total() }}</span>
-                </div>
+            <div
+                class="inline-flex items-center gap-2 rounded-full bg-slate-800/70 px-3 py-1 text-xs font-semibold text-slate-200 ring-1 ring-inset ring-slate-700">
+                <span class="text-slate-400">Total</span>
+                <span class="text-slate-100">{{ $rows->total() }}</span>
             </div>
-
-            @if ($actions !== [])
-            <div class="flex flex-wrap items-center justify-end gap-2">
-                @foreach ($actions as $action)
-                <button type="button" wire:click="runAction('{{ $action['key'] }}')" @disabled(!$action['enabled'])
-                    class="{{ $action['button_class'] !== '' ? $action['button_class'] : 'group inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-indigo-500/10 px-4 text-sm font-semibold text-indigo-300 ring-1 ring-inset ring-indigo-400/30 transition-all duration-200 hover:-translate-y-0.5 hover:bg-indigo-500/20 hover:text-indigo-200 hover:ring-indigo-300/40 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/60 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950' }}">
-                    @if ($action['icon'] !== '')
-                    <x-dynamic-component :component="$action['icon']"
-                        class="{{ $action['icon_class'] !== '' ? $action['icon_class'] : 'h-4 w-4 text-indigo-300 transition-transform duration-200 group-hover:scale-110' }}" />
-                    @endif
-                    {{ $action['label'] }}
-                </button>
-                @endforeach
-            </div>
-            @endif
         </div>
     </div>
 
@@ -91,6 +74,21 @@ $loadingTargets = 'sortBy,clearFilters,runAction,perPage,search,filterValues,pre
                 Limpar filtros
             </button>
         </div>
+
+        @if ($actions !== [])
+        <div class="flex w-full flex-wrap items-center justify-end gap-2">
+            @foreach ($actions as $action)
+            <button type="button" wire:click="runAction('{{ $action['key'] }}')" @disabled(!$action['enabled'])
+                class="{{ $action['button_class'] !== '' ? $action['button_class'] : 'group inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-indigo-500/10 px-4 text-sm font-semibold text-indigo-300 ring-1 ring-inset ring-indigo-400/30 transition-all duration-200 hover:-translate-y-0.5 hover:bg-indigo-500/20 hover:text-indigo-200 hover:ring-indigo-300/40 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/60 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950' }}">
+                @if ($action['icon'] !== '')
+                <x-dynamic-component :component="$action['icon']"
+                    class="{{ $action['icon_class'] !== '' ? $action['icon_class'] : 'h-4 w-4 text-indigo-300 transition-transform duration-200 group-hover:scale-110' }}" />
+                @endif
+                {{ $action['label'] }}
+            </button>
+            @endforeach
+        </div>
+        @endif
     </div>
 
     <div class="overflow-x-auto rounded-2xl border border-slate-800 bg-slate-950/20 transition-opacity duration-200"
