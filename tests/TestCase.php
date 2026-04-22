@@ -41,5 +41,23 @@ abstract class TestCase extends Orchestra
             $table->timestamp('created_at')->nullable();
             $table->timestamp('updated_at')->nullable();
         });
+
+        Schema::create('facebook_accounts', function (Blueprint $table): void {
+            $table->id();
+            $table->unsignedBigInteger('user_id')->nullable();
+            $table->string('facebook_id')->nullable();
+            $table->string('name')->nullable();
+            $table->timestamp('created_at')->nullable();
+            $table->timestamp('updated_at')->nullable();
+        });
+
+        Schema::create('meta_account_syncs', function (Blueprint $table): void {
+            $table->id();
+            $table->unsignedBigInteger('user_id')->nullable();
+            $table->unsignedBigInteger('local_facebook_account_id')->nullable();
+            $table->unsignedTinyInteger('status')->nullable();
+            $table->timestamp('created_at')->nullable();
+            $table->timestamp('updated_at')->nullable();
+        });
     }
 }

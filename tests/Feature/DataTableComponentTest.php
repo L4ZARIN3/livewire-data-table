@@ -5,8 +5,11 @@ declare(strict_types=1);
 namespace Lazarini\LivewireDataTable\Tests\Feature;
 
 use Carbon\Carbon;
+use Lazarini\LivewireDataTable\Tests\Fixtures\FacebookAccount;
 use Lazarini\LivewireDataTable\Tests\Fixtures\Lead;
 use Lazarini\LivewireDataTable\Tests\Fixtures\LeadsTable;
+use Lazarini\LivewireDataTable\Tests\Fixtures\MetaAccountSync;
+use Lazarini\LivewireDataTable\Tests\Fixtures\MetaAccountSyncTable;
 use Lazarini\LivewireDataTable\Tests\TestCase;
 
 final class DataTableComponentTest extends TestCase
@@ -37,6 +40,36 @@ final class DataTableComponentTest extends TestCase
             'campaign_name' => 'Campanha C',
             'source_app' => 'ig',
             'created_at' => Carbon::parse('2026-03-01 10:00:00'),
+        ]);
+
+        FacebookAccount::query()->create([
+            'id' => 10,
+            'user_id' => 1,
+            'facebook_id' => 'fb_1001',
+            'name' => 'Conta 1',
+        ]);
+
+        FacebookAccount::query()->create([
+            'id' => 11,
+            'user_id' => 2,
+            'facebook_id' => 'fb_2002',
+            'name' => 'Conta 2',
+        ]);
+
+        MetaAccountSync::query()->create([
+            'id' => 100,
+            'user_id' => 1,
+            'local_facebook_account_id' => 10,
+            'status' => 1,
+            'created_at' => Carbon::parse('2026-03-10 10:00:00'),
+        ]);
+
+        MetaAccountSync::query()->create([
+            'id' => 101,
+            'user_id' => 2,
+            'local_facebook_account_id' => 11,
+            'status' => 1,
+            'created_at' => Carbon::parse('2026-03-11 10:00:00'),
         ]);
     }
 
@@ -100,5 +133,43 @@ final class DataTableComponentTest extends TestCase
         $this->assertSame('asc', $component->sortDirection);
         $component->sortBy('wpp_name');
         $this->assertSame('desc', $component->sortDirection);
+    }
+
+    public function test_it_resolves_relationship_cell_value_with_dot_notation_key(): void
+    {
+        $component = app(MetaAccountSyncTable::class);
+        $component->mount();
+
+        $rows = $component->rows();
+        $first = $rows->firstWhere('id', 101);
+        $column = collect($component->normalizedColumns())->firstWhere('key', 'facebookAccount.facebook_id');
+
+        $this->assertNotNull($first);
+        $this->assertIsArray($column);
+        $this->assertSame('fb_2002', $component->cellValue($first, $column));
+    }
+
+    public function test_it_filters_and_searches_by_relationship_column_with_dot_notation(): void
+    {
+        $component = app(MetaAccountSyncTable::class);
+        $component->mount();
+        $relationFilter = collect($component->normalizedFilters())
+            ->firstWhere('key', 'facebookAccount.facebook_id');
+        $stateKey = (string) ($relationFilter['state_key'] ?? '');
+
+        $this->assertNotSame('', $stateKey);
+        $component->filterValues[$stateKey] = '1001';
+
+        $rowsByFilter = $component->rows();
+        $this->assertSame(1, $rowsByFilter->total());
+        $this->assertSame(100, $rowsByFilter->first()->id);
+
+        $component = app(MetaAccountSyncTable::class);
+        $component->mount();
+        $component->search = 'fb_2002';
+
+        $rowsBySearch = $component->rows();
+        $this->assertSame(1, $rowsBySearch->total());
+        $this->assertSame(101, $rowsBySearch->first()->id);
     }
 }
