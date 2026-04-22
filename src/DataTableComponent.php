@@ -272,6 +272,7 @@ abstract class DataTableComponent extends Component
         return collect($this->filters())
             ->map(function (array $filter): array {
                 $filter['key'] = (string) ($filter['key'] ?? '');
+                $filter['state_key'] = (string) ($filter['state_key'] ?? $this->filterStateKey((string) ($filter['key'] ?? '')));
                 $filter['type'] = (string) ($filter['type'] ?? 'text');
                 $filter['label'] = (string) ($filter['label'] ?? $filter['key']);
                 $filter['placeholder'] = (string) ($filter['placeholder'] ?? '');
@@ -321,11 +322,13 @@ abstract class DataTableComponent extends Component
     protected function bootFilterValues(): void
     {
         foreach ($this->normalizedFilters() as $filter) {
-            if (array_key_exists($filter['key'], $this->filterValues)) {
+            $stateKey = (string) ($filter['state_key'] ?? $filter['key']);
+
+            if (array_key_exists($stateKey, $this->filterValues)) {
                 continue;
             }
 
-            $this->filterValues[$filter['key']] = match ($filter['type']) {
+            $this->filterValues[$stateKey] = match ($filter['type']) {
                 'date_range' => ['from' => '', 'to' => ''],
                 'numeric' => ['min' => '', 'max' => ''],
                 default => '',
@@ -393,7 +396,10 @@ abstract class DataTableComponent extends Component
     {
         foreach ($this->normalizedFilters() as $filter) {
             $key = $filter['key'];
-            $value = $this->filterValues[$key] ?? null;
+            $stateKey = (string) ($filter['state_key'] ?? $key);
+            $value = array_key_exists($key, $this->filterValues)
+                ? $this->filterValues[$key]
+                : ($this->filterValues[$stateKey] ?? null);
 
             if (is_callable($filter['apply'] ?? null)) {
                 $filter['apply']($query, $value, $filter, $this);
@@ -555,6 +561,16 @@ abstract class DataTableComponent extends Component
         $segments = explode('.', $column);
 
         return (string) end($segments);
+    }
+
+    protected function filterStateKey(string $key): string
+    {
+        $key = trim($key);
+        if ($key === '') {
+            return '';
+        }
+
+        return 'f_' . substr(sha1($key), 0, 12);
     }
 
     protected function clampedPerPage(): int

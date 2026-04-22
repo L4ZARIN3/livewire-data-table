@@ -153,7 +153,12 @@ final class DataTableComponentTest extends TestCase
     {
         $component = app(MetaAccountSyncTable::class);
         $component->mount();
-        $component->filterValues['facebookAccount.facebook_id'] = '1001';
+        $relationFilter = collect($component->normalizedFilters())
+            ->firstWhere('key', 'facebookAccount.facebook_id');
+        $stateKey = (string) ($relationFilter['state_key'] ?? '');
+
+        $this->assertNotSame('', $stateKey);
+        $component->filterValues[$stateKey] = '1001';
 
         $rowsByFilter = $component->rows();
         $this->assertSame(1, $rowsByFilter->total());

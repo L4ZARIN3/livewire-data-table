@@ -169,7 +169,7 @@ Campos suportados em cada acao:
 
 Cada item de `columns()` aceita:
 
-- `key` (obrigatorio): campo no model, ex `phone`
+- `key` (obrigatorio): campo no model, ex `phone` (suporta relacao com dot notation, ex `facebookAccount.facebook_id`)
 - `label`: titulo exibido na tabela
 - `type`: `text`, `datetime`, `badge` ou tipo custom
 - `sortable`: habilita ordenacao por coluna
@@ -184,13 +184,65 @@ Cada item de `columns()` aceita:
 
 Cada item de `filters()` aceita:
 
-- `key` (obrigatorio): identificador do filtro
+- `key` (obrigatorio): identificador do filtro (suporta relacao com dot notation, ex `facebookAccount.facebook_id`)
 - `type`: `text`, `select`, `date_range`, `numeric` ou tipo custom
-- `column`: coluna SQL para aplicar filtro
+- `column`: coluna SQL para aplicar filtro (opcional; para relacao, se omitido usa o proprio `key`)
 - `operator`: operador (ex `=`, `>=`, `like`)
 - `options`: opcoes para `select`
 - `placeholder`: placeholder para campos de texto
 - `apply`: closure custom para filtros complexos
+
+### Relacionamentos (dot notation)
+
+Voce pode usar relacao diretamente em colunas, filtros e busca global.
+
+Exemplo:
+
+```php
+protected function tableQuery(): Builder
+{
+    return MetaAccountSync::query()
+        ->where('user_id', auth()->id());
+}
+
+protected function columns(): array
+{
+    return [
+        ['key' => 'id', 'label' => 'ID', 'sortable' => true],
+        [
+            'key' => 'facebookAccount.facebook_id',
+            'label' => 'Conta Facebook (Remote ID)',
+            'searchable' => true,
+            'sortable' => false,
+        ],
+        ['key' => 'status', 'label' => 'Status', 'type' => 'badge'],
+    ];
+}
+
+protected function filters(): array
+{
+    return [
+        [
+            'key' => 'facebookAccount.facebook_id',
+            'type' => 'text',
+            'operator' => 'like',
+            'placeholder' => 'Filtrar conta Facebook (ID)',
+        ],
+    ];
+}
+```
+
+Como funciona internamente:
+
+- O pacote faz `with()` automatico para relacoes presentes em `key`/`details`.
+- Busca global com coluna relacional usa `whereHas`.
+- Filtro com `key`/`column` relacional usa `whereHas`.
+- O pacote inclui automaticamente as chaves locais necessarias no `select` para hidratar relacoes.
+
+Ordenacao em relacao:
+
+- `sortable => true` funciona direto para colunas locais.
+- Para ordenar por coluna de relacao, use `join`/subquery no `tableQuery()` e defina `sort_column` com a coluna SQL real.
 
 ## Extensao
 

@@ -132,11 +132,11 @@ $loadingTargets = 'sortBy,clearFilters,runAction,perPage,search,filterValues,pre
                         @if (is_array($filter))
                         @if ($filter['type'] === 'text')
                         <input type="text"
-                            wire:model.live.debounce.300ms="filterValues.{{ $filter['key'] }}"
+                            wire:model.live.debounce.300ms="filterValues.{{ $filter['state_key'] }}"
                             placeholder="{{ $filter['placeholder'] !== '' ? $filter['placeholder'] : 'Filtrar...' }}"
                             class="block w-full rounded-lg border !border-slate-800 !bg-slate-950/40 !text-slate-100 !placeholder:text-slate-500 text-xs shadow-none focus:!border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 {{ $filter['class'] }}" />
                         @elseif($filter['type'] === 'select')
-                        <select wire:model.live="filterValues.{{ $filter['key'] }}"
+                        <select wire:model.live="filterValues.{{ $filter['state_key'] }}"
                             class="block w-full rounded-lg border !border-slate-800 !bg-slate-950/40 !text-slate-100 text-xs shadow-none focus:!border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 {{ $filter['class'] }}">
                             <option value="">Todos</option>
                             @foreach ($filter['options'] as $optionValue => $optionLabel)
@@ -146,20 +146,20 @@ $loadingTargets = 'sortBy,clearFilters,runAction,perPage,search,filterValues,pre
                         @elseif($filter['type'] === 'date_range')
                         <div class="grid grid-cols-1 gap-2">
                             <input type="date"
-                                wire:model.live="filterValues.{{ $filter['key'] }}.from"
+                                wire:model.live="filterValues.{{ $filter['state_key'] }}.from"
                                 class="block w-full rounded-lg border !border-slate-800 !bg-slate-950/40 !text-slate-100 text-xs shadow-none focus:!border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 {{ $filter['class'] }}" />
                             <input type="date"
-                                wire:model.live="filterValues.{{ $filter['key'] }}.to"
+                                wire:model.live="filterValues.{{ $filter['state_key'] }}.to"
                                 class="block w-full rounded-lg border !border-slate-800 !bg-slate-950/40 !text-slate-100 text-xs shadow-none focus:!border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 {{ $filter['class'] }}" />
                         </div>
                         @elseif($filter['type'] === 'numeric')
                         <div class="grid grid-cols-1 gap-2">
                             <input type="number"
-                                wire:model.live.debounce.300ms="filterValues.{{ $filter['key'] }}.min"
+                                wire:model.live.debounce.300ms="filterValues.{{ $filter['state_key'] }}.min"
                                 placeholder="Min"
                                 class="block w-full rounded-lg border !border-slate-800 !bg-slate-950/40 !text-slate-100 !placeholder:text-slate-500 text-xs shadow-none focus:!border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 {{ $filter['class'] }}" />
                             <input type="number"
-                                wire:model.live.debounce.300ms="filterValues.{{ $filter['key'] }}.max"
+                                wire:model.live.debounce.300ms="filterValues.{{ $filter['state_key'] }}.max"
                                 placeholder="Max"
                                 class="block w-full rounded-lg border !border-slate-800 !bg-slate-950/40 !text-slate-100 !placeholder:text-slate-500 text-xs shadow-none focus:!border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 {{ $filter['class'] }}" />
                         </div>
