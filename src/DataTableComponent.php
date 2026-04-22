@@ -7,6 +7,9 @@ namespace Lazarini\LivewireDataTable;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOneOrMany;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Collection;
 use Illuminate\View\View;
 use Lazarini\LivewireDataTable\Support\ColumnTypeRegistry;
@@ -340,7 +343,18 @@ abstract class DataTableComponent extends Component
 
         $columns = collect($this->normalizedColumns())
             ->filter(fn(array $column): bool => $column['searchable'])
-            ->map(fn(array $column): string => (string) $column['sort_column'])
+            ->map(function (array $column): string {
+                if (isset($column['search_column'])) {
+                    return (string) $column['search_column'];
+                }
+
+                $key = (string) ($column['key'] ?? '');
+                if (str_contains($key, '.')) {
+                    return $key;
+                }
+
+                return (string) ($column['sort_column'] ?? $key);
+            })
             ->values();
 
         if ($columns->isEmpty()) {
@@ -348,14 +362,29 @@ abstract class DataTableComponent extends Component
         }
 
         $query->where(function (Builder $searchQuery) use ($columns, $term): void {
-            foreach ($columns as $index => $column) {
-                if ($index === 0) {
-                    $searchQuery->where($column, 'like', "%{$term}%");
+            $isFirst = true;
+
+            foreach ($columns as $column) {
+                [$relationPath, $relatedColumn] = $this->splitRelationAndColumn((string) $column);
+
+                if ($relationPath !== null) {
+                    $method = $isFirst ? 'whereHas' : 'orWhereHas';
+                    $searchQuery->{$method}($relationPath, function (Builder $relatedQuery) use ($relatedColumn, $term): void {
+                        $relatedQuery->where($relatedColumn, 'like', "%{$term}%");
+                    });
+                    $isFirst = false;
 
                     continue;
                 }
 
-                $searchQuery->orWhere($column, 'like', "%{$term}%");
+                if ($isFirst) {
+                    $searchQuery->where((string) $column, 'like', "%{$term}%");
+                    $isFirst = false;
+
+                    continue;
+                }
+
+                $searchQuery->orWhere((string) $column, 'like', "%{$term}%");
             }
         });
     }
@@ -372,7 +401,19 @@ abstract class DataTableComponent extends Component
                 continue;
             }
 
-            $this->filterTypes()->resolve((string) $filter['type'])->apply($query, $filter, $value);
+            [$relationPath, $relatedColumn] = $this->splitRelationAndColumn((string) ($filter['column'] ?? $filter['key'] ?? ''));
+
+            if ($relationPath === null) {
+                $this->filterTypes()->resolve((string) $filter['type'])->apply($query, $filter, $value);
+
+                continue;
+            }
+
+            $query->whereHas($relationPath, function (Builder $relatedQuery) use ($filter, $value, $relatedColumn): void {
+                $relatedFilter = $filter;
+                $relatedFilter['column'] = $relatedColumn;
+                $this->filterTypes()->resolve((string) $relatedFilter['type'])->apply($relatedQuery, $relatedFilter, $value);
+            });
         }
     }
 
@@ -399,6 +440,7 @@ abstract class DataTableComponent extends Component
 
         $columns = $columnKeys
             ->merge($detailKeys)
+            ->merge($this->relationHydrationColumns($query))
             ->unique()
             ->values()
             ->all();
@@ -411,10 +453,15 @@ abstract class DataTableComponent extends Component
     protected function applyWith(Builder $query): void
     {
         $relations = collect($this->normalizedColumns())
-            ->map(fn(array $column): string => (string) ($column['sort_column'] ?? ''))
+            ->map(fn(array $column): string => (string) ($column['key'] ?? ''))
             ->merge(collect($this->details())->map(fn(array $field): string => (string) ($field['key'] ?? '')))
             ->filter(fn(string $path): bool => str_contains($path, '.'))
-            ->map(fn(string $path): string => explode('.', $path)[0])
+            ->map(function (string $path): string {
+                [$relationPath] = $this->splitRelationAndColumn($path);
+
+                return $relationPath ?? '';
+            })
+            ->filter(fn(string $relationPath): bool => $relationPath !== '')
             ->unique()
             ->values()
             ->all();
@@ -422,6 +469,92 @@ abstract class DataTableComponent extends Component
         if ($relations !== []) {
             $query->with($relations);
         }
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    protected function relationHydrationColumns(Builder $query): array
+    {
+        $model = $query->getModel();
+
+        $relationNames = collect($this->normalizedColumns())
+            ->map(fn(array $column): string => (string) ($column['key'] ?? ''))
+            ->merge(collect($this->details())->map(fn(array $field): string => (string) ($field['key'] ?? '')))
+            ->map(function (string $path): string {
+                [$relationPath] = $this->splitRelationAndColumn($path);
+                if ($relationPath === null) {
+                    return '';
+                }
+
+                return explode('.', $relationPath)[0] ?? '';
+            })
+            ->filter(fn(string $name): bool => $name !== '')
+            ->unique()
+            ->values()
+            ->all();
+
+        $columns = [];
+
+        foreach ($relationNames as $relationName) {
+            if (! method_exists($model, $relationName)) {
+                continue;
+            }
+
+            $relation = $model->{$relationName}();
+
+            if (! $relation instanceof Relation) {
+                continue;
+            }
+
+            if ($relation instanceof BelongsTo) {
+                $columns[] = $this->unqualifyColumn($relation->getForeignKeyName());
+                continue;
+            }
+
+            if ($relation instanceof HasOneOrMany) {
+                $columns[] = $this->unqualifyColumn($relation->getLocalKeyName());
+            }
+        }
+
+        return collect($columns)
+            ->filter(fn(string $column): bool => $column !== '' && ! str_contains($column, '.'))
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return array{0: string|null, 1: string}
+     */
+    protected function splitRelationAndColumn(string $path): array
+    {
+        $path = trim($path);
+        if ($path === '' || ! str_contains($path, '.')) {
+            return [null, $path];
+        }
+
+        $segments = explode('.', $path);
+        $column = (string) array_pop($segments);
+        $relationPath = implode('.', $segments);
+
+        if ($relationPath === '' || $column === '') {
+            return [null, $path];
+        }
+
+        return [$relationPath, $column];
+    }
+
+    protected function unqualifyColumn(string $column): string
+    {
+        $column = trim($column);
+        if ($column === '' || ! str_contains($column, '.')) {
+            return $column;
+        }
+
+        $segments = explode('.', $column);
+
+        return (string) end($segments);
     }
 
     protected function clampedPerPage(): int
