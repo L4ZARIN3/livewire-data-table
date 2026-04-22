@@ -399,7 +399,7 @@ abstract class DataTableComponent extends Component
             $stateKey = (string) ($filter['state_key'] ?? $key);
             $value = array_key_exists($key, $this->filterValues)
                 ? $this->filterValues[$key]
-                : ($this->filterValues[$stateKey] ?? null);
+                : ($this->filterValues[$stateKey] ?? data_get($this->filterValues, $key));
 
             if (is_callable($filter['apply'] ?? null)) {
                 $filter['apply']($query, $value, $filter, $this);
