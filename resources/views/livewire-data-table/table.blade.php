@@ -252,6 +252,6 @@ $loadingTargets = 'sortBy,clearFilters,runAction,perPage,search,filterValues,pre
             Mostrando <span class="font-semibold text-slate-200">{{ $rows->count() }}</span>
             de <span class="font-semibold text-slate-200">{{ $rows->total() }}</span>
         </p>
-        <div class="text-slate-200">{{ $rows->onEachSide(1)->links() }}</div>
+        <div class="text-slate-200">{{ $rows->onEachSide(1)->links(data: ['scrollTo' => false]) }}</div>
     </div>
 </div>
